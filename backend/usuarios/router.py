@@ -52,12 +52,18 @@ def login_usuario(credenciales: schemas.UsuarioLogin, db: Session = Depends(get_
         "correo": usuario.correo,
         "nombre": usuario.nombre
     }
+
+# 1. Definimos el modelo Pydantic completamente por fuera y antes de la ruta
 class RecuperarRequest(BaseModel):
     correo: str
+
+# 2. Definimos la ruta al mismo nivel que las demás funciones (sin doble indentación)
+@router.post("/recuperar-password")
+def recuperar_password(request: RecuperarRequest, db: Session = Depends(get_db)):
+    # Opcional: Validar si el usuario existe en la base de datos
+    usuario = db.query(models.UsuarioDB).filter(models.UsuarioDB.correo == request.correo).first()
     
-    @router.post("/usuarios/recuperar-password")
-    def recuperar_password(request: RecuperarRequest):
-        # 1. Buscar en la base de datos si el usuario con request.correo existe
-        # 2. Generar token de recuperación o enviar correo
-        # (Para pruebas, puedes simplemente retornar un mensaje de éxito)
-        return {"mensaje": "Si el correo existe, se han enviado las instrucciones."}
+    # Por seguridad, respondemos éxito igual para que no filtren correos existentes
+    return {
+        "mensaje": "Si el correo está registrado, se han enviado las instrucciones de recuperación."
+    }
