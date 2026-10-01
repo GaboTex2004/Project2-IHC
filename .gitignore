@@ -1,0 +1,91 @@
+# ==========================================
+# Variables de Entorno y Secretos (¡CRÍTICO!)
+# ==========================================
+.env
+.env.local
+.env.*.local
+*.env
+
+# ==========================================
+# Backend: Python & FastAPI
+# ==========================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales (Virtual environments)
+venv/
+env/
+ENV/
+.venv/
+env.bak/
+venv.bak/
+
+# FastAPI / Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# ==========================================
+# Frontend: Flutter & Dart
+# ==========================================
+# Archivos generados y dependencias de Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+ephemeral/
+
+# Configuración generada automáticamente para Flutter
+/android/app/debug
+/android/app/profile
+/android/app/release
+/ios/Flutter/Generated.xcconfig
+/ios/Flutter/flutter_export_environment.sh
+/linux/flutter/generated_plugin_registrant.cc
+/linux/flutter/generated_plugin_registrant.h
+/macos/runner/GeneratedPluginRegistrant.swift
+/windows/flutter/generated_plugin_registrant.cc
+/windows/flutter/generated_plugin_registrant.h
+
+# Cobertura de pruebas Flutter
+coverage/
+
+# ==========================================
+# Archivos de Editores e IDEs
+# ==========================================
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# Android Studio / IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# macOS / Windows OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ==========================================
+# Docker & Logs
+# ==========================================
+*.log
+docker-compose.override.yml
