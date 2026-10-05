@@ -61,11 +61,7 @@ coverage/
 # Archivos de Editores e IDEs
 # ==========================================
 # Visual Studio Code
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+.vscode/
 *.code-workspace
 
 # Android Studio / IntelliJ IDEA
@@ -89,3 +85,10 @@ Thumbs.db
 # ==========================================
 *.log
 docker-compose.override.yml
+
+# ==========================================
+# estructura de agentes, contexto e ia
+.agents/
+.codex/
+CLAUDE.md
+.github/
