@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from jose import jwt
@@ -67,3 +67,21 @@ def recuperar_password(request: RecuperarRequest, db: Session = Depends(get_db))
     return {
         "mensaje": "Si el correo está registrado, se han enviado las instrucciones de recuperación."
     }
+
+def obtener_usuario_token(authorization: str = Header(None), db: Session = Depends(get_db)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="No estás logueado")
+    
+    try:
+        token = authorization.split(" ")[1] 
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        correo = payload.get("sub")
+        
+        # Usamos models.UsuarioDB porque así se llama en tu archivo
+        usuario = db.query(models.UsuarioDB).filter(models.UsuarioDB.correo == correo).first()
+        if not usuario:
+            raise HTTPException(status_code=401, detail="Usuario no existe")
+        
+        return usuario
+    except:
+        raise HTTPException(status_code=401, detail="Token inválido o expirado")
