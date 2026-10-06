@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from core.database import engine, Base
 from usuarios.router import router as usuarios_router
-
+from mascotas.router import router as mascotas_router
 # Crear las tablas automáticamente al iniciar
 Base.metadata.create_all(bind=engine)
 
@@ -17,6 +17,7 @@ app.add_middleware(
 )
 
 app.include_router(usuarios_router, prefix="/api/usuarios", tags=["Usuarios"])
+app.include_router(mascotas_router, prefix="/api/mascotas", tags=["Mascotas"])
 
 @app.get("/")
 def root():
