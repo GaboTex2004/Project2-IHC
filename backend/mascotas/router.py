@@ -38,6 +38,10 @@ def completar_cuidado(id: int, db: Session = Depends(get_db), usuario = Depends(
     if not mascota:
         raise HTTPException(status_code=404, detail="Mascota no encontrada o no es tuya")
 
+    # No se puede completar un cuidado que ya está completado
+    if mascota.estado:
+        raise HTTPException(status_code=400, detail="El cuidado ya estaba completado")
+
     mascota.estado = True
     db.commit()
     return {"mensaje": "Cuidado completado exitosamente"}
