@@ -10,6 +10,7 @@ import '../../auth/screens/login_screen.dart';
 
 // IMPORTAMOS LA NUEVA PANTALLA
 import 'agregar_mascota_screen.dart';
+import 'editar_mascota_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -98,6 +99,47 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // --- FUNCIÓN PARA ELIMINAR ---
+  Future<void> _eliminarMascota(int idMascota) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+
+    await http.delete(
+      Uri.parse('${AppConstants.baseUrl}/mascotas/eliminar/$idMascota'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    _cargarMascotas(); // Recargar tras borrar
+  }
+
+  // --- CUADRO DE CONFIRMACIÓN PARA ELIMINAR ---
+  void _confirmarEliminar(int idMascota) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        title: Text("¿Eliminar registro?"),
+        content: Text("Esta acción no se puede deshacer."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text("Cancelar", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _eliminarMascota(idMascota);
+            },
+            child: Text("Eliminar"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -165,15 +207,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: Colors.black,
                                 ),
                               ),
                               SizedBox(height: 8),
                               Text(
                                 '${mascota['cuidado']} · ${mascota['fecha']}',
-                                style: TextStyle(color: Colors.black87),
                               ),
                               SizedBox(height: 12),
+
+                              // Estado y botón "Marcar Realizado"
                               if (!estaRealizado)
                                 SizedBox(
                                   width: double.infinity,
@@ -182,20 +224,86 @@ class _HomeScreenState extends State<HomeScreen> {
                                       backgroundColor: Colors.black,
                                       foregroundColor: Colors.white,
                                     ),
-                                    onPressed: () {
-                                      _marcarComoRealizado(mascota['id']);
-                                    },
+                                    onPressed: () =>
+                                        _marcarComoRealizado(mascota['id']),
                                     child: Text("Marcar como realizado"),
                                   ),
                                 )
                               else
-                                Text(
-                                  "✓ Realizado",
-                                  style: TextStyle(
-                                    color: Colors.grey[700],
-                                    fontWeight: FontWeight.bold,
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 8.0),
+                                  child: Text(
+                                    "✓ Realizado",
+                                    style: TextStyle(
+                                      color: Colors.green[800],
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
+
+                              SizedBox(height: 8),
+
+                              // Botones de Editar y Eliminar
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      // Si está realizado, el botón se vuelve gris (anulado)
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: estaRealizado
+                                            ? Colors.grey[300]
+                                            : Colors.white,
+                                        foregroundColor: estaRealizado
+                                            ? Colors.grey[600]
+                                            : Colors.black,
+                                        side: BorderSide(color: Colors.grey),
+                                        elevation: 0,
+                                      ),
+                                      onPressed: () async {
+                                        if (estaRealizado) {
+                                          // Cumplimos con la restricción de explicar el motivo
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    "No puedes editar un cuidado que ya fue realizado.",
+                                                  ),
+                                                ),
+                                              );
+                                        } else {
+                                          // Si no está realizado, vamos a la pantalla de edición
+                                          final resultado =
+                                              await Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      EditarMascotaScreen(
+                                                        mascota: mascota,
+                                                      ),
+                                                ),
+                                              );
+                                          if (resultado == true)
+                                            _cargarMascotas();
+                                        }
+                                      },
+                                      child: Text("Editar"),
+                                    ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.red[100],
+                                        foregroundColor: Colors.red[900],
+                                        elevation: 0,
+                                      ),
+                                      onPressed: () =>
+                                          _confirmarEliminar(mascota['id']),
+                                      child: Text("Eliminar"),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
                         ),
