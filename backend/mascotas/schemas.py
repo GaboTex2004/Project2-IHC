@@ -7,6 +7,9 @@ class MascotaCreate(BaseModel):
     cuidado: str
     fecha: date
 
+class ReprogramarCuidado(BaseModel):
+    fecha: date
+
 class Mascota(BaseModel):
     id: int 
     nombre: str
