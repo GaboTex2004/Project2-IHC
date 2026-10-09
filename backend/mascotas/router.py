@@ -1,4 +1,6 @@
 # backend/mascotas/router.py
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from core.database import get_db
@@ -46,6 +48,45 @@ def completar_cuidado(id: int, db: Session = Depends(get_db), usuario = Depends(
     db.commit()
     return {"mensaje": "Cuidado completado exitosamente"}
 
+def reprogramar_cuidado(
+    id: int,
+    nueva_fecha: date,
+    db: Session,
+    usuario,
+):
+    cuidado = db.query(models.Mascota).filter(
+        models.Mascota.id == id,
+        models.Mascota.usuario_id == usuario.id
+    ).first()
+
+    if not cuidado:
+        raise HTTPException(status_code=404, detail="Cuidado no encontrado o no es tuyo")
+
+    if cuidado.estado:
+        raise HTTPException(
+            status_code=400,
+            detail="No puedes reprogramar un cuidado que ya fue realizado"
+        )
+
+    if nueva_fecha <= date.today():
+        raise HTTPException(
+            status_code=400,
+            detail="La nueva fecha debe ser futura"
+        )
+
+    cuidado.fecha = nueva_fecha
+    db.commit()
+    db.refresh(cuidado)
+    return cuidado
+
+@router.put("/{id}/reprogramar", response_model=schemas.Mascota)
+def actualizar_fecha_cuidado(
+    id: int,
+    datos: schemas.ReprogramarCuidado,
+    db: Session = Depends(get_db),
+    usuario = Depends(obtener_usuario_token)
+):
+    return reprogramar_cuidado(id, datos.fecha, db, usuario)
 
 @router.put("/editar/{id}", response_model=schemas.Mascota)
 def editar_mascota(id: int, mascota_actualizada: schemas.MascotaCreate, db: Session = Depends(get_db), usuario = Depends(obtener_usuario_token)):

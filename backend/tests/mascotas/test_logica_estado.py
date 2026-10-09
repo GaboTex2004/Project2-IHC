@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 from core.database import Base
 from usuarios.models import UsuarioDB
 from mascotas.models import Mascota
-from mascotas.router import completar_cuidado
+from mascotas.router import completar_cuidado, reprogramar_cuidado
 
 
 class PruebasEstadoMascota(unittest.TestCase):
@@ -54,6 +54,40 @@ class PruebasEstadoMascota(unittest.TestCase):
         self.assertEqual(self.mascota.cuidado, "Vacuna")
         self.assertEqual(self.mascota.fecha, date(2026, 1, 15))
         self.assertEqual(self.mascota.usuario_id, self.usuario.id)
+
+    def test_reprogramar_cambia_la_fecha_futura(self):
+        nueva_fecha = date(2099, 12, 31)
+
+        reprogramar_cuidado(self.mascota.id, nueva_fecha, self.db, self.usuario)
+        self.db.refresh(self.mascota)
+
+        self.assertEqual(self.mascota.fecha, nueva_fecha)
+
+    def test_reprogramar_fecha_pasada_se_rechaza(self):
+        with self.assertRaises(HTTPException) as error:
+            reprogramar_cuidado(
+                self.mascota.id,
+                date(2020, 1, 1),
+                self.db,
+                self.usuario,
+            )
+
+        self.assertEqual(error.exception.status_code, 400)
+        self.assertEqual(error.exception.detail, "La nueva fecha debe ser futura")
+
+    def test_reprogramar_cuidado_completado_se_rechaza(self):
+        self.mascota.estado = True
+        self.db.commit()
+
+        with self.assertRaises(HTTPException) as error:
+            reprogramar_cuidado(
+                self.mascota.id,
+                date(2099, 12, 31),
+                self.db,
+                self.usuario,
+            )
+
+        self.assertEqual(error.exception.status_code, 400)
 
 
 if __name__ == "__main__":
