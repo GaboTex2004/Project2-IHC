@@ -104,11 +104,22 @@ class _HomeScreenState extends State<HomeScreen> {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
 
-    await http.delete(
+    final response = await http.delete(
       Uri.parse('${AppConstants.baseUrl}/mascotas/eliminar/$idMascota'),
       headers: {'Authorization': 'Bearer $token'},
     );
-    _cargarMascotas(); // Recargar tras borrar
+
+    if (response.statusCode == 200) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registro eliminado correctamente.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+      _cargarMascotas(); // Recargar tras borrar
+    }
   }
 
   // --- CUADRO DE CONFIRMACIÓN PARA ELIMINAR ---
@@ -313,7 +324,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      // --- BOTÓN PARA IR A LA NUEVA PANTALLA ---
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           // Navegamos a la pantalla y esperamos a ver si devuelve "true"

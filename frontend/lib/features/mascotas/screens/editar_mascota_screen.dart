@@ -54,6 +54,14 @@ class _EditarMascotaScreenState extends State<EditarMascotaScreen> {
       );
 
       if (response.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Cuidado editado y reprogramado correctamente.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
         Navigator.pop(context, true); // Retornamos true indicando éxito
       } else {
         setState(() => _guardando = false);

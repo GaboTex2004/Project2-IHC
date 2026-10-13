@@ -38,5 +38,58 @@ class PruebasApiMascotas(unittest.TestCase):
         self.assertEqual(res_completar_2.status_code, 400)
         self.assertEqual(res_completar_2.json()["detail"], "El cuidado ya estaba completado")
 
+    # --- NUEVOS TESTS INTEGRADOS CORRECTAMENTE ---
+
+    def test_editar_reprogramar_permitido(self):
+        # 1. Crear una mascota/cuidado pendiente (estado=False por defecto)
+        mascota_data = {
+            "nombre": "Firulais",
+            "tipo": "Perro",
+            "cuidado": "Vacuna",
+            "fecha": "2026-10-15"
+        }
+        res_crear = self.client.post("/api/mascotas/crear", json=mascota_data)
+        mascota_id = res_crear.json()["id"]
+
+        # 2. Intentar editar/reprogramar (Caso Permitido)
+        mascota_actualizada = {
+            "nombre": "Firulais",
+            "tipo": "Perro",
+            "cuidado": "Vacuna",
+            "fecha": "2026-10-20"  # Nueva fecha
+        }
+        res_editar = self.client.put(f"/api/mascotas/editar/{mascota_id}", json=mascota_actualizada)
+        
+        self.assertEqual(res_editar.status_code, 200)
+        self.assertEqual(res_editar.json()["fecha"], "2026-10-20")
+
+
+    def test_editar_reprogramar_rechazado(self):
+        # 1. Crear cuidado
+        mascota_data = {
+            "nombre": "Michi",
+            "tipo": "Gato",
+            "cuidado": "Baño",
+            "fecha": "2026-10-10"
+        }
+        res_crear = self.client.post("/api/mascotas/crear", json=mascota_data)
+        mascota_id = res_crear.json()["id"]
+
+        # 2. Marcarlo como completado
+        self.client.put(f"/api/mascotas/{mascota_id}/completar")
+
+        # 3. Intentar editar/reprogramar (Caso Rechazado)
+        mascota_actualizada = {
+            "nombre": "Michi",
+            "tipo": "Gato",
+            "cuidado": "Baño",
+            "fecha": "2026-10-12" # Intento de cambio de fecha
+        }
+        res_editar = self.client.put(f"/api/mascotas/editar/{mascota_id}", json=mascota_actualizada)
+        
+        self.assertEqual(res_editar.status_code, 400)
+        self.assertEqual(res_editar.json()["detail"], "No puedes editar un cuidado que ya fue realizado.")
+
 if __name__ == "__main__":
     unittest.main()
+
