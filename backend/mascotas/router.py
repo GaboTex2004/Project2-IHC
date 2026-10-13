@@ -98,16 +98,3 @@ def eliminar_mascota(id: int, db: Session = Depends(get_db), usuario = Depends(o
     db.commit()
     return {"mensaje": "Mascota eliminada correctamente"}
 
-@router.put("/{id}/completar")
-def completar_cuidado(id: int, db: Session = Depends(get_db), usuario = Depends(obtener_usuario_token)):
-    mascota = db.query(models.Mascota).filter(models.Mascota.id == id, models.Mascota.usuario_id == usuario.id).first()
-
-    if not mascota:
-        raise HTTPException(status_code=404, detail="Mascota no encontrada")
-
-    if mascota.estado:
-        raise HTTPException(status_code=400, detail="El cuidado ya estaba completado")
-
-    mascota.estado = True
-    db.commit()
-    return {"mensaje": "Cuidado completado exitosamente"}
