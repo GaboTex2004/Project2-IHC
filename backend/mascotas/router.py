@@ -3,15 +3,35 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from core.database import get_db
 from . import models, schemas
+from typing import Optional
+from datetime import date
 
-# IMPORTACIÓN CLAVE: Traemos la función desde tu módulo de usuarios
 from usuarios.router import obtener_usuario_token 
 
 router = APIRouter()
 
 @router.get("/lista", response_model=list[schemas.Mascota])
-def mis_mascotas(db: Session = Depends(get_db), usuario = Depends(obtener_usuario_token)):
-    mascotas = db.query(models.Mascota).filter(models.Mascota.usuario_id == usuario.id).all()
+def mis_mascotas(
+    nombre: Optional[str] = None,
+    estado: Optional[bool] = None,
+    cuidado: Optional[str] = None,
+    fecha_inicio: Optional[date] = None,
+    fecha_fin: Optional[date] = None,
+    db: Session = Depends(get_db), 
+    usuario = Depends(obtener_usuario_token)
+):
+    query = db.query(models.Mascota).filter(models.Mascota.usuario_id == usuario.id)
+    if nombre:
+        query = query.filter(models.Mascota.nombre.ilike(f"%{nombre}%"))
+    if estado is not None:
+        query = query.filter(models.Mascota.estado == estado)
+    if cuidado:
+        query = query.filter(models.Mascota.cuidado.ilike(f"%{cuidado}%"))
+    if fecha_inicio:
+        query = query.filter(models.Mascota.fecha >= fecha_inicio)
+    if fecha_fin:
+        query = query.filter(models.Mascota.fecha <= fecha_fin)
+    mascotas = query.all()
     return mascotas
 
 @router.post("/crear", response_model=schemas.Mascota)

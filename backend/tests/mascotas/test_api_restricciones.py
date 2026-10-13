@@ -89,7 +89,38 @@ class PruebasApiMascotas(unittest.TestCase):
         
         self.assertEqual(res_editar.status_code, 400)
         self.assertEqual(res_editar.json()["detail"], "No puedes editar un cuidado que ya fue realizado.")
+    # --- TESTS DE FILTRADO (NUEVOS) ---
 
+    def test_filtrado_con_resultados(self):
+        # 1. Creamos un par de mascotas con datos específicos
+        self.client.post("/api/mascotas/crear", json={
+            "nombre": "Rex", "tipo": "Perro", "cuidado": "Vacuna", "fecha": "2026-11-01"
+        })
+        self.client.post("/api/mascotas/crear", json={
+            "nombre": "Garfield", "tipo": "Gato", "cuidado": "Control", "fecha": "2026-11-15"
+        })
+
+        # 2. Hacemos la petición con filtros (nombre=Rex y estado=false)
+        res = self.client.get("/api/mascotas/lista?nombre=Rex&estado=false")
+        
+        self.assertEqual(res.status_code, 200)
+        datos = res.json()
+        
+        # 3. Verificamos que traiga resultados y coincidan con el filtro
+        self.assertTrue(len(datos) >= 1)
+        self.assertEqual(datos[0]["nombre"], "Rex")
+        self.assertEqual(datos[0]["estado"], False)
+
+    def test_filtrado_sin_resultados(self):
+        # 1. Hacemos una petición con un nombre que sabemos que no existe
+        res = self.client.get("/api/mascotas/lista?nombre=MascotaFantasmaQueNoExiste")
+        
+        self.assertEqual(res.status_code, 200)
+        datos = res.json()
+        
+        # 2. Verificamos que devuelva una lista vacía
+        self.assertEqual(len(datos), 0)
+        self.assertEqual(datos, [])
 if __name__ == "__main__":
     unittest.main()
 

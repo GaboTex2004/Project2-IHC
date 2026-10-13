@@ -22,6 +22,14 @@ class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> _mascotas = [];
   bool _cargando = true;
 
+  // Variables para los filtros
+  String _filtroNombre = "";
+  bool? _filtroEstado; // null: Todos, false: Pendientes, true: Realizados
+  String? _filtroCuidado;
+  DateTime? _filtroFechaInicio;
+  DateTime? _filtroFechaFin;
+  String? _filtroFechaLabel; // NUEVO: Para mostrar en el Chip
+
   @override
   void initState() {
     super.initState();
@@ -36,13 +44,69 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  // --- NUEVA FUNCIÓN PARA CALCULAR LAS FECHAS ---
+  Future<void> _aplicarFiltroFecha(String? tipo) async {
+    final hoy = DateTime.now();
+
+    if (tipo == '7_dias') {
+      _filtroFechaInicio = hoy;
+      _filtroFechaFin = hoy.add(Duration(days: 7));
+      _filtroFechaLabel = "Próximos 7 días";
+    } else if (tipo == 'este_mes') {
+      _filtroFechaInicio = DateTime(hoy.year, hoy.month, 1);
+      _filtroFechaFin = DateTime(hoy.year, hoy.month + 1, 0);
+      _filtroFechaLabel = "Este mes";
+    } else if (tipo == 'personalizado') {
+      final DateTimeRange? rango = await showDateRangePicker(
+        context: context,
+        firstDate: DateTime(2020),
+        lastDate: DateTime(2030),
+      );
+      if (rango != null) {
+        _filtroFechaInicio = rango.start;
+        _filtroFechaFin = rango.end;
+        _filtroFechaLabel =
+            "${rango.start.day}/${rango.start.month} - ${rango.end.day}/${rango.end.month}";
+      } else {
+        return; // Si cancela, no hacemos nada
+      }
+    } else {
+      _filtroFechaInicio = null;
+      _filtroFechaFin = null;
+      _filtroFechaLabel = null;
+    }
+
+    setState(() {});
+    _cargarMascotas();
+  }
+
   Future<void> _cargarMascotas() async {
+    setState(() => _cargando = true);
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
 
+    // Construimos los parámetros de la URL
+    List<String> queryParams = [];
+    if (_filtroNombre.isNotEmpty) queryParams.add("nombre=$_filtroNombre");
+    if (_filtroEstado != null) queryParams.add("estado=$_filtroEstado");
+    if (_filtroCuidado != null && _filtroCuidado!.isNotEmpty)
+      queryParams.add("cuidado=$_filtroCuidado");
+    if (_filtroFechaInicio != null)
+      queryParams.add(
+        "fecha_inicio=${_filtroFechaInicio!.toIso8601String().split('T')[0]}",
+      );
+    if (_filtroFechaFin != null)
+      queryParams.add(
+        "fecha_fin=${_filtroFechaFin!.toIso8601String().split('T')[0]}",
+      );
+
+    String queryString = queryParams.isNotEmpty
+        ? "?${queryParams.join('&')}"
+        : "";
+
     try {
       final response = await http.get(
-        Uri.parse('${AppConstants.baseUrl}/mascotas/lista'),
+        Uri.parse('${AppConstants.baseUrl}/mascotas/lista$queryString'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -99,7 +163,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- FUNCIÓN PARA ELIMINAR ---
   Future<void> _eliminarMascota(int idMascota) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
@@ -118,11 +181,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       }
-      _cargarMascotas(); // Recargar tras borrar
+      _cargarMascotas();
     }
   }
 
-  // --- CUADRO DE CONFIRMACIÓN PARA ELIMINAR ---
   void _confirmarEliminar(int idMascota) {
     showDialog(
       context: context,
@@ -181,15 +243,172 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
+
+          // --- 1. BARRA DE BÚSQUEDA ---
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: TextField(
+              onChanged: (value) => _filtroNombre = value,
+              onSubmitted: (_) => _cargarMascotas(),
+              decoration: InputDecoration(
+                labelText: 'Buscar mascota por nombre...',
+                border: OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(Icons.search),
+                  onPressed: _cargarMascotas,
+                ),
+              ),
+            ),
+          ),
+
+          // --- 2. CONTROLES DE FILTRO (Desplegables) ---
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<bool?>(
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                    ),
+                    value: _filtroEstado,
+                    hint: Text("Estado"),
+                    items: [
+                      DropdownMenuItem(value: null, child: Text("Todos")),
+                      DropdownMenuItem(value: false, child: Text("Pendientes")),
+                      DropdownMenuItem(value: true, child: Text("Realizados")),
+                    ],
+                    onChanged: (valor) {
+                      setState(() => _filtroEstado = valor);
+                      _cargarMascotas();
+                    },
+                  ),
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: DropdownButtonFormField<String?>(
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                    ),
+                    value: _filtroCuidado,
+                    hint: Text("Tipo"),
+                    items: [
+                      DropdownMenuItem(value: null, child: Text("Cualquiera")),
+                      DropdownMenuItem(value: "Vacuna", child: Text("Vacuna")),
+                      DropdownMenuItem(
+                        value: "Desparasitación",
+                        child: Text("Desparasitación"),
+                      ),
+                      DropdownMenuItem(
+                        value: "Control",
+                        child: Text("Control"),
+                      ),
+                      DropdownMenuItem(value: "Baño", child: Text("Baño")),
+                    ],
+                    onChanged: (valor) {
+                      setState(() => _filtroCuidado = valor);
+                      _cargarMascotas();
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // NUEVO: FILTRO DE FECHAS DEBAJO DE LOS OTROS DOS
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: DropdownButtonFormField<String?>(
+              decoration: InputDecoration(
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(horizontal: 10),
+              ),
+              value: null,
+              hint: Text("Filtrar por fecha..."),
+              items: [
+                DropdownMenuItem(value: null, child: Text("Cualquier fecha")),
+                DropdownMenuItem(
+                  value: "7_dias",
+                  child: Text("Próximos 7 días"),
+                ),
+                DropdownMenuItem(value: "este_mes", child: Text("Este mes")),
+                DropdownMenuItem(
+                  value: "personalizado",
+                  child: Text("Rango personalizado..."),
+                ),
+              ],
+              onChanged: (valor) => _aplicarFiltroFecha(valor),
+            ),
+          ),
+          SizedBox(height: 8),
+
+          // --- 3. FILTROS ACTIVOS (Chips con la "X" para quitarlos) ---
+          Wrap(
+            spacing: 8.0,
+            children: [
+              if (_filtroNombre.isNotEmpty)
+                Chip(
+                  label: Text('Nombre: $_filtroNombre'),
+                  deleteIcon: Icon(Icons.close, size: 18),
+                  onDeleted: () {
+                    setState(() => _filtroNombre = "");
+                    _cargarMascotas();
+                  },
+                ),
+              if (_filtroEstado != null)
+                Chip(
+                  label: Text(_filtroEstado! ? 'Realizados' : 'Pendientes'),
+                  deleteIcon: Icon(Icons.close, size: 18),
+                  onDeleted: () {
+                    setState(() => _filtroEstado = null);
+                    _cargarMascotas();
+                  },
+                ),
+              if (_filtroCuidado != null && _filtroCuidado!.isNotEmpty)
+                Chip(
+                  label: Text('Tipo: $_filtroCuidado'),
+                  deleteIcon: Icon(Icons.close, size: 18),
+                  onDeleted: () {
+                    setState(() => _filtroCuidado = null);
+                    _cargarMascotas();
+                  },
+                ),
+              if (_filtroFechaInicio != null)
+                Chip(
+                  label: Text(_filtroFechaLabel ?? 'Fechas específicas'),
+                  deleteIcon: Icon(Icons.close, size: 18),
+                  onDeleted: () {
+                    setState(() {
+                      _filtroFechaInicio = null;
+                      _filtroFechaFin = null;
+                      _filtroFechaLabel = null;
+                    });
+                    _cargarMascotas();
+                  },
+                ),
+            ],
+          ),
+
           Divider(color: Colors.grey),
+
+          // --- 4. LISTADO Y MENSAJE DE ESTADO VACÍO ---
           Expanded(
             child: _cargando
                 ? Center(child: CircularProgressIndicator(color: Colors.black))
                 : _mascotas.isEmpty
                 ? Center(
-                    child: Text(
-                      "No tienes mascotas registradas.",
-                      style: TextStyle(color: Colors.grey),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        "No se encontraron cuidados con estos filtros.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey, fontSize: 16),
+                      ),
                     ),
                   )
                 : ListView.builder(
@@ -226,7 +445,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               SizedBox(height: 12),
 
-                              // Estado y botón "Marcar Realizado"
                               if (!estaRealizado)
                                 SizedBox(
                                   width: double.infinity,
@@ -254,12 +472,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
                               SizedBox(height: 8),
 
-                              // Botones de Editar y Eliminar
                               Row(
                                 children: [
                                   Expanded(
                                     child: ElevatedButton(
-                                      // Si está realizado, el botón se vuelve gris (anulado)
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: estaRealizado
                                             ? Colors.grey[300]
@@ -272,7 +488,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ),
                                       onPressed: () async {
                                         if (estaRealizado) {
-                                          // Cumplimos con la restricción de explicar el motivo
                                           ScaffoldMessenger.of(context)
                                               .showSnackBar(
                                                 SnackBar(
@@ -282,7 +497,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 ),
                                               );
                                         } else {
-                                          // Si no está realizado, vamos a la pantalla de edición
                                           final resultado =
                                               await Navigator.push(
                                                 context,
@@ -326,17 +540,11 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          // Navegamos a la pantalla y esperamos a ver si devuelve "true"
           final resultado = await Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => AgregarMascotaScreen()),
           );
-
-          // Si el resultado es true, significa que el usuario guardó algo y recargamos
           if (resultado == true) {
-            setState(() {
-              _cargando = true;
-            });
             _cargarMascotas();
           }
         },
