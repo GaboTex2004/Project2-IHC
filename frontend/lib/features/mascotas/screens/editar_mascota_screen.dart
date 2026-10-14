@@ -111,6 +111,27 @@ class _EditarMascotaScreenState extends State<EditarMascotaScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            // Resumen del cuidado con la fecha original, para no tener que recordarla
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(12),
+              margin: EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                border: Border.all(color: Colors.grey),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${widget.mascota['nombre']} · ${widget.mascota['cuidado']}',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  SizedBox(height: 4),
+                  Text('Fecha programada actual: ${widget.mascota['fecha']}'),
+                ],
+              ),
+            ),
             TextField(
               controller: _nombreController,
               decoration: InputDecoration(
