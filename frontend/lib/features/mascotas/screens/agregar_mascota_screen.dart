@@ -21,9 +21,15 @@ class _AgregarMascotaScreenState extends State<AgregarMascotaScreen> {
   bool _guardando = false;
 
   Future<void> _guardarMascota() async {
-    // Validación súper básica para que no envíen datos vacíos
-    if (_nombreController.text.isEmpty || _fechaController.text.isEmpty) {
-      print("Por favor, llena los datos");
+    // Avisamos qué campos faltan en vez de no hacer nada
+    if (_nombreController.text.trim().isEmpty ||
+        _tipoController.text.trim().isEmpty ||
+        _cuidadoController.text.trim().isEmpty ||
+        _fechaController.text.isEmpty) {
+      _mostrarMensaje(
+        "Completa nombre, tipo, cuidado y fecha para guardar.",
+        Colors.red,
+      );
       return;
     }
 
@@ -51,19 +57,40 @@ class _AgregarMascotaScreenState extends State<AgregarMascotaScreen> {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        Navigator.pop(context, true);
+        _mostrarMensaje(
+          "${_cuidadoController.text} de ${_nombreController.text} guardado para el ${_fechaController.text}.",
+          Colors.green,
+        );
+        if (mounted) Navigator.pop(context, true);
       } else {
-        print("Error al guardar: ${response.body}");
+        // Mostramos el motivo que manda el backend
+        String motivo = "No se pudo guardar el cuidado.";
+        try {
+          motivo = json.decode(response.body)['detail'].toString();
+        } catch (e) {
+          // Si no viene 'detail' dejamos el mensaje general
+        }
         setState(() {
           _guardando = false;
         });
+        _mostrarMensaje(motivo, Colors.red);
       }
     } catch (e) {
-      print("Error: $e");
       setState(() {
         _guardando = false;
       });
+      _mostrarMensaje(
+        "No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.",
+        Colors.red,
+      );
     }
+  }
+
+  void _mostrarMensaje(String mensaje, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(mensaje), backgroundColor: color),
+    );
   }
 
   // --- FUNCIÓN PARA MOSTRAR EL CALENDARIO ---
@@ -176,6 +203,22 @@ class _AgregarMascotaScreenState extends State<AgregarMascotaScreen> {
                 child: _guardando
                     ? Text("Guardando...")
                     : Text("Guardar Mascota"),
+              ),
+            ),
+            SizedBox(height: 12),
+            // Igual que en editar: salir sin guardar
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.black,
+                  side: BorderSide(color: Colors.grey),
+                ),
+                onPressed: _guardando
+                    ? null
+                    : () => Navigator.pop(context, false),
+                child: Text("Cancelar"),
               ),
             ),
           ],
