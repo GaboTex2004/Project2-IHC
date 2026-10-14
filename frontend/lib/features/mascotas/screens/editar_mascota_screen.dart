@@ -158,6 +158,22 @@ class _EditarMascotaScreenState extends State<EditarMascotaScreen> {
                 child: Text(_guardando ? "Actualizando..." : "Guardar Cambios"),
               ),
             ),
+            SizedBox(height: 12),
+            // Salida clara para no guardar una fecha elegida por error
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.black,
+                  side: BorderSide(color: Colors.grey),
+                ),
+                onPressed: _guardando
+                    ? null
+                    : () => Navigator.pop(context, false),
+                child: Text("Cancelar"),
+              ),
+            ),
           ],
         ),
       ),
