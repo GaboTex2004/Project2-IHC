@@ -38,6 +38,10 @@ def mis_mascotas(
 
 @router.post("/crear", response_model=schemas.Mascota)
 def crear_mascota(mascota: schemas.MascotaCreate, db: Session = Depends(get_db), usuario = Depends(obtener_usuario_token)):
+    # La fecha del cuidado tiene que ser futura (misma regla que editar)
+    if mascota.fecha <= date.today():
+        raise HTTPException(status_code=400, detail="La fecha del cuidado debe ser futura")
+
     nueva_mascota = models.Mascota(
         nombre=mascota.nombre,
         tipo=mascota.tipo,

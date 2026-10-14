@@ -68,10 +68,14 @@ class _AgregarMascotaScreenState extends State<AgregarMascotaScreen> {
 
   // --- FUNCIÓN PARA MOSTRAR EL CALENDARIO ---
   Future<void> _seleccionarFecha(BuildContext context) async {
+    // Solo fechas futuras, igual que al editar (a partir de mañana)
+    final hoy = DateTime.now();
+    final manana = DateTime(hoy.year, hoy.month, hoy.day + 1);
+
     final DateTime? fechaSeleccionada = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020), // Fecha mínima
+      initialDate: manana,
+      firstDate: manana, // Fecha mínima
       lastDate: DateTime(2030), // Fecha máxima
       builder: (context, child) {
         // Le damos tu estilo blanco/negro al calendario
@@ -152,6 +156,7 @@ class _AgregarMascotaScreenState extends State<AgregarMascotaScreen> {
                   _seleccionarFecha(context), // Abre el calendario al tocar
               decoration: InputDecoration(
                 labelText: "Fecha de cuidado",
+                helperText: "Toca para elegir una fecha a partir de mañana.",
                 border: OutlineInputBorder(),
                 suffixIcon: Icon(Icons.calendar_today, color: Colors.black),
               ),
