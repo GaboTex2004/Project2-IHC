@@ -113,7 +113,8 @@ class _AgregarMascotaScreenState extends State<AgregarMascotaScreen> {
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
       ),
-      body: Padding(
+      // Con scroll para que el teclado no tape el formulario
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

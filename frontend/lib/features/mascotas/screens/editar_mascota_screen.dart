@@ -133,7 +133,8 @@ class _EditarMascotaScreenState extends State<EditarMascotaScreen> {
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
       ),
-      body: Padding(
+      // Con scroll para que el teclado no tape el formulario
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
