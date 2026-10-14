@@ -128,13 +128,13 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _marcarComoRealizado(int idMascota) async {
+  Future<void> _marcarComoRealizado(Map<String, dynamic> mascota) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
 
     try {
       final response = await http.put(
-        Uri.parse('${AppConstants.baseUrl}/mascotas/$idMascota/completar'),
+        Uri.parse('${AppConstants.baseUrl}/mascotas/${mascota['id']}/completar'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -142,13 +142,31 @@ class _HomeScreenState extends State<HomeScreen> {
       );
 
       if (response.statusCode == 200) {
-        _cargarMascotas();
+        // Cambiamos solo esta tarjeta para que siga visible en su lugar
+        setState(() => mascota['estado'] = true);
+        _mostrarMensaje(
+          '${mascota['cuidado']} de ${mascota['nombre']} marcado como realizado.',
+          Colors.green,
+        );
       } else {
-        print("Error al actualizar");
+        _mostrarMensaje(
+          'No se pudo marcar como realizado. Inténtalo de nuevo.',
+          Colors.red,
+        );
       }
     } catch (e) {
-      print("Error: $e");
+      _mostrarMensaje(
+        'No se pudo conectar con el servidor. Revisa tu conexión.',
+        Colors.red,
+      );
     }
+  }
+
+  void _mostrarMensaje(String mensaje, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(mensaje), backgroundColor: color),
+    );
   }
 
   Future<void> _cerrarSesion(BuildContext context) async {
@@ -454,7 +472,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       foregroundColor: Colors.white,
                                     ),
                                     onPressed: () =>
-                                        _marcarComoRealizado(mascota['id']),
+                                        _marcarComoRealizado(mascota),
                                     child: Text("Marcar como realizado"),
                                   ),
                                 )
