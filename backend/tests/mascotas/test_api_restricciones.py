@@ -89,6 +89,21 @@ class PruebasApiMascotas(unittest.TestCase):
         
         self.assertEqual(res_editar.status_code, 400)
         self.assertEqual(res_editar.json()["detail"], "No puedes editar un cuidado que ya fue realizado.")
+
+    def test_editar_fecha_pasada_rechazada(self):
+        # 1. Crear un cuidado pendiente con fecha futura
+        res_crear = self.client.post("/api/mascotas/crear", json={
+            "nombre": "Toby", "tipo": "Perro", "cuidado": "Vacuna", "fecha": "2030-01-10"
+        })
+        mascota_id = res_crear.json()["id"]
+
+        # 2. Intentar reprogramarlo a una fecha pasada (Caso Rechazado)
+        res_editar = self.client.put(f"/api/mascotas/editar/{mascota_id}", json={
+            "nombre": "Toby", "tipo": "Perro", "cuidado": "Vacuna", "fecha": "2020-01-01"
+        })
+
+        self.assertEqual(res_editar.status_code, 400)
+        self.assertEqual(res_editar.json()["detail"], "La nueva fecha debe ser futura")
     # --- TESTS DE FILTRADO (NUEVOS) ---
 
     def test_filtrado_con_resultados(self):

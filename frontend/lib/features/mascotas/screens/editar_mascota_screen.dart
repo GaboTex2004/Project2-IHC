@@ -72,10 +72,18 @@ class _EditarMascotaScreenState extends State<EditarMascotaScreen> {
   }
 
   Future<void> _seleccionarFecha(BuildContext context) async {
+    // Solo se puede reprogramar a partir de mañana (igual que en el backend)
+    final hoy = DateTime.now();
+    final manana = DateTime(hoy.year, hoy.month, hoy.day + 1);
+    DateTime fechaInicial = DateTime.parse(_fechaController.text);
+    if (fechaInicial.isBefore(manana)) {
+      fechaInicial = manana;
+    }
+
     final DateTime? fecha = await showDatePicker(
       context: context,
-      initialDate: DateTime.parse(widget.mascota['fecha']),
-      firstDate: DateTime(2020),
+      initialDate: fechaInicial,
+      firstDate: manana,
       lastDate: DateTime(2030),
       builder: (context, child) {
         return Theme(

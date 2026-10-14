@@ -118,6 +118,10 @@ def editar_mascota(id: int, mascota_actualizada: schemas.MascotaCreate, db: Sess
     if mascota.estado:
         raise HTTPException(status_code=400, detail="No puedes editar un cuidado que ya fue realizado.")
 
+    # Si cambia la fecha, tiene que ser futura (misma regla que reprogramar)
+    if mascota_actualizada.fecha != mascota.fecha and mascota_actualizada.fecha <= date.today():
+        raise HTTPException(status_code=400, detail="La nueva fecha debe ser futura")
+
     # Actualizamos los datos
     mascota.nombre = mascota_actualizada.nombre
     mascota.tipo = mascota_actualizada.tipo
