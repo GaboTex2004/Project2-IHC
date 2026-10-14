@@ -364,10 +364,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 Expanded(
                   child: DropdownButtonFormField<bool?>(
                     decoration: InputDecoration(
+                      labelText: "Estado",
                       border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(horizontal: 10),
                     ),
                     value: _filtroEstado,
+                    isExpanded: true,
                     hint: Text("Estado"),
                     items: [
                       DropdownMenuItem(value: null, child: Text("Todos")),
@@ -384,20 +386,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 Expanded(
                   child: DropdownButtonFormField<String?>(
                     decoration: InputDecoration(
+                      labelText: "Cuidado",
                       border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(horizontal: 10),
                     ),
                     value: _filtroCuidado,
+                    // Para que los textos largos se corten y no se salgan
+                    isExpanded: true,
                     hint: Text("Cuidado"),
                     items: [
-                      DropdownMenuItem(
-                        value: null,
-                        child: Text("Cualquier cuidado"),
-                      ),
+                      DropdownMenuItem(value: null, child: Text("Todos")),
                       DropdownMenuItem(value: "Vacuna", child: Text("Vacuna")),
                       DropdownMenuItem(
                         value: "Desparasitación",
-                        child: Text("Desparasitación"),
+                        child: Text("Desparasitación", overflow: TextOverflow.ellipsis),
                       ),
                       DropdownMenuItem(
                         value: "Control",
