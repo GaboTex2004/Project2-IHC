@@ -33,7 +33,8 @@ def mis_mascotas(
         query = query.filter(models.Mascota.fecha >= fecha_inicio)
     if fecha_fin:
         query = query.filter(models.Mascota.fecha <= fecha_fin)
-    mascotas = query.all()
+    # Ordenados por fecha para ver primero lo más próximo
+    mascotas = query.order_by(models.Mascota.fecha).all()
     return mascotas
 
 @router.post("/crear", response_model=schemas.Mascota)
