@@ -64,11 +64,29 @@ class _EditarMascotaScreenState extends State<EditarMascotaScreen> {
         }
         Navigator.pop(context, true); // Retornamos true indicando éxito
       } else {
+        // Mostramos el motivo que manda el backend y qué puede hacer la persona
+        String motivo = "No se pudo reprogramar el cuidado.";
+        try {
+          motivo = json.decode(response.body)['detail'];
+        } catch (e) {
+          // Si la respuesta no trae 'detail' dejamos el mensaje general
+        }
         setState(() => _guardando = false);
+        _mostrarError("$motivo Revisa la fecha o vuelve a la lista con Cancelar.");
       }
     } catch (e) {
       setState(() => _guardando = false);
+      _mostrarError(
+        "No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.",
+      );
     }
+  }
+
+  void _mostrarError(String mensaje) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(mensaje), backgroundColor: Colors.red),
+    );
   }
 
   Future<void> _seleccionarFecha(BuildContext context) async {
