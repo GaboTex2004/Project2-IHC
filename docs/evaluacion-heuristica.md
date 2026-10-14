@@ -15,7 +15,7 @@
 
 **Caso permitido:** reprogramar a Firulais (pendiente) del 20 al 23 de octubre. La lista muestra la nueva fecha y aparece el mensaje "Cuidado editado y reprogramado correctamente." ([caso-permitido.png](evidencias/caso-permitido.png))
 
-**Caso bloqueado:** tocar **Editar** en Rocky, que ya fue realizado. La app no abre la edición y muestra "No puedes editar un cuidado que ya fue realizado." ([caso-bloqueado.png](evidencias/caso-bloqueado.png)) La API también lo rechaza con error 400 (`backend/mascotas/router.py:122-123`).
+**Caso bloqueado:** tocar **Editar** en Rocky, que ya fue realizado. La app no abre la edición y muestra "No puedes editar un cuidado que ya fue realizado." ([caso-bloqueado.png](evidencias/caso-bloqueado.png)) La API también lo rechaza con error 400 (`backend/mascotas/router.py:123-124`).
 
 ## Resumen
 
@@ -45,10 +45,10 @@
   - [caso-permitido.png](evidencias/caso-permitido.png)
   - [h1-marcar-realizado.png](evidencias/h1-marcar-realizado.png)
 - **Código:**
-  - `frontend/lib/features/mascotas/screens/home_screen.dart:420` (indicador de carga)
-  - `home_screen.dart:131-170` (marcar como realizado y su mensaje)
-  - `home_screen.dart:466-489` (estado de cada tarjeta)
-  - `home_screen.dart:528-529` (recarga al volver)
+  - `frontend/lib/features/mascotas/screens/home_screen.dart:499` (indicador de carga)
+  - `home_screen.dart:148-217` (confirmación, marcar como realizado y su mensaje)
+  - `home_screen.dart:568-602` (estado de cada tarjeta)
+  - `home_screen.dart:641-642` (recarga al volver)
   - `frontend/lib/features/mascotas/screens/editar_mascota_screen.dart:57-63` (mensaje de éxito)
   - `editar_mascota_screen.dart:208` ("Actualizando...")
 
@@ -59,8 +59,8 @@
 - **Cómo se comprobó:** se revisaron los textos visibles del panel y de la edición durante el recorrido.
 - **Captura:** [flujo-lista.png](evidencias/flujo-lista.png)
 - **Código:**
-  - `home_screen.dart:298-329` (opciones de los filtros)
-  - `home_screen.dart:461-483` (textos de la tarjeta)
+  - `home_screen.dart:372-406` (opciones de los filtros)
+  - `home_screen.dart:555-597` (textos de la tarjeta)
 
 ## H3 · Control y libertad — Corregida (#13)
 
@@ -89,8 +89,8 @@
   - [edicion-despues.png](evidencias/edicion-despues.png)
   - [caso-bloqueado.png](evidencias/caso-bloqueado.png)
 - **Código:**
-  - `home_screen.dart:216` y `editar_mascota_screen.dart:224` ("Cancelar")
-  - `home_screen.dart:513` y `backend/mascotas/router.py:123` (mismo mensaje)
+  - `home_screen.dart:288` y `editar_mascota_screen.dart:224` ("Cancelar")
+  - `home_screen.dart:626` y `backend/mascotas/router.py:124` (mismo mensaje)
 
 ## H5 · Prevención de errores — Corregida (#17)
 
@@ -111,11 +111,11 @@
 - **Después:** [h5-despues-calendario.png](evidencias/h5-despues-calendario.png)
 - **Archivos modificados:**
   - `frontend/lib/features/mascotas/screens/editar_mascota_screen.dart:91-104`
-  - `backend/mascotas/router.py:125-127`
+  - `backend/mascotas/router.py:126-128`
   - `backend/tests/mascotas/test_api_restricciones.py:93-106`
 - **Commits:**
   - `a8aab70` "H5: no permite reprogramar a una fecha pasada en la app ni en la API (#17)"
-  - `3cd890c` "H5: al registrar un cuidado solo se permiten fechas futuras (#17)". Aplica la misma regla en `agregar_mascota_screen.dart` y en `/crear` (`router.py:41-43`), con la prueba `test_crear_fecha_pasada_rechazada`.
+  - `3cd890c` "H5: al registrar un cuidado solo se permiten fechas futuras (#17)". Aplica la misma regla en `agregar_mascota_screen.dart` y en `/crear` (`router.py:42-44`), con la prueba `test_crear_fecha_pasada_rechazada`.
 
 ## H6 · Reconocer antes que recordar — Corregida (#14)
 
@@ -138,10 +138,10 @@
 - **Cómo se comprobó:** se revisó el código del panel y se usaron los filtros durante el recorrido. La API de filtros tiene pruebas (`test_filtrado_con_resultados`, `test_filtrado_sin_resultados`).
 - **Captura:** [flujo-lista.png](evidencias/flujo-lista.png)
 - **Código:**
-  - `home_screen.dart:83-105` (arma la consulta con los filtros)
-  - `home_screen.dart:368-413` (chips)
-  - `home_screen.dart:518-529` (vuelve y recarga con los filtros)
-  - `backend/mascotas/router.py:15-37`
+  - `home_screen.dart:93-118` (arma la consulta con los filtros)
+  - `home_screen.dart:446-492` (chips)
+  - `home_screen.dart:631-642` (vuelve y recarga con los filtros)
+  - `backend/mascotas/router.py:15-38`
 
 ## H8 · Diseño estético y minimalista — Cumple
 
@@ -151,7 +151,7 @@
 - **Capturas:**
   - [flujo-lista.png](evidencias/flujo-lista.png)
   - [edicion-despues.png](evidencias/edicion-despues.png)
-- **Código:** `home_screen.dart:438-553`
+- **Código:** `home_screen.dart:540-668`
 
 ## H9 · Reconocer y recuperarse de errores — Corregida (#16)
 
