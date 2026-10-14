@@ -161,7 +161,10 @@ class _EditarMascotaScreenState extends State<EditarMascotaScreen> {
               readOnly: true,
               onTap: () => _seleccionarFecha(context),
               decoration: InputDecoration(
-                labelText: "Fecha",
+                labelText: "Nueva fecha",
+                helperText:
+                    "Toca para elegir una fecha a partir de mañana.\nSolo los cuidados pendientes se pueden reprogramar.",
+                helperMaxLines: 2,
                 border: OutlineInputBorder(),
                 suffixIcon: Icon(Icons.calendar_today, color: Colors.black),
               ),
