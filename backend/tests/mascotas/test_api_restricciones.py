@@ -46,7 +46,7 @@ class PruebasApiMascotas(unittest.TestCase):
             "nombre": "Firulais",
             "tipo": "Perro",
             "cuidado": "Vacuna",
-            "fecha": "2026-10-15"
+            "fecha": "2030-10-15"
         }
         res_crear = self.client.post("/api/mascotas/crear", json=mascota_data)
         mascota_id = res_crear.json()["id"]
@@ -56,12 +56,12 @@ class PruebasApiMascotas(unittest.TestCase):
             "nombre": "Firulais",
             "tipo": "Perro",
             "cuidado": "Vacuna",
-            "fecha": "2026-10-20"  # Nueva fecha
+            "fecha": "2030-10-20"  # Nueva fecha
         }
         res_editar = self.client.put(f"/api/mascotas/editar/{mascota_id}", json=mascota_actualizada)
         
         self.assertEqual(res_editar.status_code, 200)
-        self.assertEqual(res_editar.json()["fecha"], "2026-10-20")
+        self.assertEqual(res_editar.json()["fecha"], "2030-10-20")
 
 
     def test_editar_reprogramar_rechazado(self):
@@ -70,7 +70,7 @@ class PruebasApiMascotas(unittest.TestCase):
             "nombre": "Michi",
             "tipo": "Gato",
             "cuidado": "Baño",
-            "fecha": "2026-10-10"
+            "fecha": "2030-10-10"
         }
         res_crear = self.client.post("/api/mascotas/crear", json=mascota_data)
         mascota_id = res_crear.json()["id"]
@@ -83,12 +83,36 @@ class PruebasApiMascotas(unittest.TestCase):
             "nombre": "Michi",
             "tipo": "Gato",
             "cuidado": "Baño",
-            "fecha": "2026-10-12" # Intento de cambio de fecha
+            "fecha": "2030-10-12" # Intento de cambio de fecha
         }
         res_editar = self.client.put(f"/api/mascotas/editar/{mascota_id}", json=mascota_actualizada)
         
         self.assertEqual(res_editar.status_code, 400)
         self.assertEqual(res_editar.json()["detail"], "No puedes editar un cuidado que ya fue realizado.")
+
+    def test_editar_fecha_pasada_rechazada(self):
+        # 1. Crear un cuidado pendiente con fecha futura
+        res_crear = self.client.post("/api/mascotas/crear", json={
+            "nombre": "Toby", "tipo": "Perro", "cuidado": "Vacuna", "fecha": "2030-01-10"
+        })
+        mascota_id = res_crear.json()["id"]
+
+        # 2. Intentar reprogramarlo a una fecha pasada (Caso Rechazado)
+        res_editar = self.client.put(f"/api/mascotas/editar/{mascota_id}", json={
+            "nombre": "Toby", "tipo": "Perro", "cuidado": "Vacuna", "fecha": "2020-01-01"
+        })
+
+        self.assertEqual(res_editar.status_code, 400)
+        self.assertEqual(res_editar.json()["detail"], "La nueva fecha debe ser futura")
+
+    def test_crear_fecha_pasada_rechazada(self):
+        # No se puede registrar un cuidado con una fecha que ya pasó
+        res_crear = self.client.post("/api/mascotas/crear", json={
+            "nombre": "Luna", "tipo": "Gato", "cuidado": "Control", "fecha": "2020-01-01"
+        })
+
+        self.assertEqual(res_crear.status_code, 400)
+        self.assertEqual(res_crear.json()["detail"], "La fecha del cuidado debe ser futura")
     # --- TESTS DE FILTRADO (NUEVOS) ---
 
     def test_filtrado_con_resultados(self):

@@ -21,6 +21,8 @@ class _HomeScreenState extends State<HomeScreen> {
   String _nombreUsuario = "Cargando...";
   List<dynamic> _mascotas = [];
   bool _cargando = true;
+  bool _errorCarga = false; // true si no se pudo traer la lista
+  final _busquedaController = TextEditingController();
 
   // Variables para los filtros
   String _filtroNombre = "";
@@ -29,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime? _filtroFechaInicio;
   DateTime? _filtroFechaFin;
   String? _filtroFechaLabel; // NUEVO: Para mostrar en el Chip
+  String? _filtroFechaTipo; // Opción elegida en el desplegable de fecha
 
   @override
   void initState() {
@@ -76,12 +79,22 @@ class _HomeScreenState extends State<HomeScreen> {
       _filtroFechaLabel = null;
     }
 
-    setState(() {});
+    setState(() => _filtroFechaTipo = tipo);
     _cargarMascotas();
   }
 
+  bool _hayFiltros() {
+    return _filtroNombre.isNotEmpty ||
+        _filtroEstado != null ||
+        _filtroCuidado != null ||
+        _filtroFechaInicio != null;
+  }
+
   Future<void> _cargarMascotas() async {
-    setState(() => _cargando = true);
+    setState(() {
+      _cargando = true;
+      _errorCarga = false;
+    });
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
 
@@ -119,22 +132,26 @@ class _HomeScreenState extends State<HomeScreen> {
           _cargando = false;
         });
       } else {
-        print("Error al cargar mascotas");
-        setState(() => _cargando = false);
+        setState(() {
+          _cargando = false;
+          _errorCarga = true;
+        });
       }
     } catch (e) {
-      print("Error de conexión: $e");
-      setState(() => _cargando = false);
+      setState(() {
+        _cargando = false;
+        _errorCarga = true;
+      });
     }
   }
 
-  Future<void> _marcarComoRealizado(int idMascota) async {
+  Future<void> _marcarComoRealizado(Map<String, dynamic> mascota) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
 
     try {
       final response = await http.put(
-        Uri.parse('${AppConstants.baseUrl}/mascotas/$idMascota/completar'),
+        Uri.parse('${AppConstants.baseUrl}/mascotas/${mascota['id']}/completar'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -142,13 +159,84 @@ class _HomeScreenState extends State<HomeScreen> {
       );
 
       if (response.statusCode == 200) {
-        _cargarMascotas();
+        // Cambiamos solo esta tarjeta para que siga visible en su lugar
+        setState(() => mascota['estado'] = true);
+        _mostrarMensaje(
+          '${mascota['cuidado']} de ${mascota['nombre']} marcado como realizado.',
+          Colors.green,
+        );
       } else {
-        print("Error al actualizar");
+        _mostrarMensaje(
+          'No se pudo marcar como realizado. Inténtalo de nuevo.',
+          Colors.red,
+        );
       }
     } catch (e) {
-      print("Error: $e");
+      _mostrarMensaje(
+        'No se pudo conectar con el servidor. Revisa tu conexión.',
+        Colors.red,
+      );
     }
+  }
+
+  void _confirmarRealizado(Map<String, dynamic> mascota) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        title: Text("¿Marcar como realizado?"),
+        content: Text(
+          "${mascota['cuidado']} de ${mascota['nombre']}. Después ya no podrás editarlo ni reprogramarlo.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text("Cancelar", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _marcarComoRealizado(mascota);
+            },
+            child: Text("Marcar"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _mostrarMensaje(String mensaje, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(mensaje), backgroundColor: color),
+    );
+  }
+
+  void _confirmarCerrarSesion() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        title: Text("¿Cerrar sesión?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text("Cancelar", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _cerrarSesion(context);
+            },
+            child: Text("Cerrar sesión"),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _cerrarSesion(BuildContext context) async {
@@ -167,21 +255,23 @@ class _HomeScreenState extends State<HomeScreen> {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
 
-    final response = await http.delete(
-      Uri.parse('${AppConstants.baseUrl}/mascotas/eliminar/$idMascota'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
+    try {
+      final response = await http.delete(
+        Uri.parse('${AppConstants.baseUrl}/mascotas/eliminar/$idMascota'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
 
-    if (response.statusCode == 200) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registro eliminado correctamente.'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+      if (response.statusCode == 200) {
+        _mostrarMensaje('Registro eliminado correctamente.', Colors.redAccent);
+        _cargarMascotas();
+      } else {
+        _mostrarMensaje('No se pudo eliminar. Inténtalo de nuevo.', Colors.red);
       }
-      _cargarMascotas();
+    } catch (e) {
+      _mostrarMensaje(
+        'No se pudo conectar con el servidor. Revisa tu conexión.',
+        Colors.red,
+      );
     }
   }
 
@@ -225,7 +315,8 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             icon: Icon(Icons.logout),
-            onPressed: () => _cerrarSesion(context),
+            tooltip: "Cerrar sesión",
+            onPressed: _confirmarCerrarSesion,
           ),
         ],
       ),
@@ -248,6 +339,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: TextField(
+              controller: _busquedaController,
               onChanged: (value) => _filtroNombre = value,
               onSubmitted: (_) => _cargarMascotas(),
               decoration: InputDecoration(
@@ -272,10 +364,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 Expanded(
                   child: DropdownButtonFormField<bool?>(
                     decoration: InputDecoration(
+                      labelText: "Estado",
                       border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(horizontal: 10),
                     ),
                     value: _filtroEstado,
+                    isExpanded: true,
                     hint: Text("Estado"),
                     items: [
                       DropdownMenuItem(value: null, child: Text("Todos")),
@@ -292,17 +386,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 Expanded(
                   child: DropdownButtonFormField<String?>(
                     decoration: InputDecoration(
+                      labelText: "Cuidado",
                       border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(horizontal: 10),
                     ),
                     value: _filtroCuidado,
-                    hint: Text("Tipo"),
+                    // Para que los textos largos se corten y no se salgan
+                    isExpanded: true,
+                    hint: Text("Cuidado"),
                     items: [
-                      DropdownMenuItem(value: null, child: Text("Cualquiera")),
+                      DropdownMenuItem(value: null, child: Text("Todos")),
                       DropdownMenuItem(value: "Vacuna", child: Text("Vacuna")),
                       DropdownMenuItem(
                         value: "Desparasitación",
-                        child: Text("Desparasitación"),
+                        child: Text("Desparasitación", overflow: TextOverflow.ellipsis),
                       ),
                       DropdownMenuItem(
                         value: "Control",
@@ -328,7 +425,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 border: OutlineInputBorder(),
                 contentPadding: EdgeInsets.symmetric(horizontal: 10),
               ),
-              value: null,
+              value: _filtroFechaTipo,
               hint: Text("Filtrar por fecha..."),
               items: [
                 DropdownMenuItem(value: null, child: Text("Cualquier fecha")),
@@ -356,6 +453,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   label: Text('Nombre: $_filtroNombre'),
                   deleteIcon: Icon(Icons.close, size: 18),
                   onDeleted: () {
+                    _busquedaController.clear();
                     setState(() => _filtroNombre = "");
                     _cargarMascotas();
                   },
@@ -371,7 +469,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               if (_filtroCuidado != null && _filtroCuidado!.isNotEmpty)
                 Chip(
-                  label: Text('Tipo: $_filtroCuidado'),
+                  label: Text('Cuidado: $_filtroCuidado'),
                   deleteIcon: Icon(Icons.close, size: 18),
                   onDeleted: () {
                     setState(() => _filtroCuidado = null);
@@ -387,6 +485,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       _filtroFechaInicio = null;
                       _filtroFechaFin = null;
                       _filtroFechaLabel = null;
+                      _filtroFechaTipo = null;
                     });
                     _cargarMascotas();
                   },
@@ -400,12 +499,35 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: _cargando
                 ? Center(child: CircularProgressIndicator(color: Colors.black))
+                : _errorCarga
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            "No se pudo cargar tus cuidados. Revisa tu conexión.",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.grey, fontSize: 16),
+                          ),
+                          SizedBox(height: 12),
+                          OutlinedButton(
+                            onPressed: _cargarMascotas,
+                            child: Text("Reintentar"),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
                 : _mascotas.isEmpty
                 ? Center(
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Text(
-                        "No se encontraron cuidados con estos filtros.",
+                        _hayFiltros()
+                            ? "No se encontraron cuidados con estos filtros."
+                            : "Aún no tienes cuidados registrados. Toca + para agregar el primero.",
                         textAlign: TextAlign.center,
                         style: TextStyle(color: Colors.grey, fontSize: 16),
                       ),
@@ -446,6 +568,17 @@ class _HomeScreenState extends State<HomeScreen> {
                               SizedBox(height: 12),
 
                               if (!estaRealizado)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 8.0),
+                                  child: Text(
+                                    "Pendiente",
+                                    style: TextStyle(
+                                      color: Colors.orange[800],
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              if (!estaRealizado)
                                 SizedBox(
                                   width: double.infinity,
                                   child: ElevatedButton(
@@ -454,7 +587,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       foregroundColor: Colors.white,
                                     ),
                                     onPressed: () =>
-                                        _marcarComoRealizado(mascota['id']),
+                                        _confirmarRealizado(mascota),
                                     child: Text("Marcar como realizado"),
                                   ),
                                 )
@@ -550,6 +683,7 @@ class _HomeScreenState extends State<HomeScreen> {
         },
         backgroundColor: Colors.lightBlue,
         foregroundColor: Colors.white,
+        tooltip: "Agregar cuidado",
         child: Icon(Icons.add),
       ),
     );

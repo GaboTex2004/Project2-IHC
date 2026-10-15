@@ -31,11 +31,16 @@ def mis_mascotas(
         query = query.filter(models.Mascota.fecha >= fecha_inicio)
     if fecha_fin:
         query = query.filter(models.Mascota.fecha <= fecha_fin)
-    mascotas = query.all()
+    # Ordenados por fecha para ver primero lo más próximo
+    mascotas = query.order_by(models.Mascota.fecha).all()
     return mascotas
 
 @router.post("/crear", response_model=schemas.Mascota)
 def crear_mascota(mascota: schemas.MascotaCreate, db: Session = Depends(get_db), usuario = Depends(obtener_usuario_token)):
+    # La fecha del cuidado tiene que ser futura (misma regla que editar)
+    if mascota.fecha <= date.today():
+        raise HTTPException(status_code=400, detail="La fecha del cuidado debe ser futura")
+
     nueva_mascota = models.Mascota(
         nombre=mascota.nombre,
         tipo=mascota.tipo,
@@ -76,6 +81,10 @@ def editar_mascota(id: int, mascota_actualizada: schemas.MascotaCreate, db: Sess
     
     if mascota.estado:
         raise HTTPException(status_code=400, detail="No puedes editar un cuidado que ya fue realizado.")
+
+    # Si cambia la fecha, tiene que ser futura (misma regla que reprogramar)
+    if mascota_actualizada.fecha != mascota.fecha and mascota_actualizada.fecha <= date.today():
+        raise HTTPException(status_code=400, detail="La nueva fecha debe ser futura")
 
     # Actualizamos los datos
     mascota.nombre = mascota_actualizada.nombre

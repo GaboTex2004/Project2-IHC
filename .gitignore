@@ -86,14 +86,10 @@ Thumbs.db
 *.log
 docker-compose.override.yml
 
-<<<<<<< HEAD
 # ==========================================
 # estructura de agentes, contexto e ia
 .agents/
 .codex/
 CLAUDE.md
 .github/
-=======
-.github/
-CLAUDE.md
->>>>>>> refs/remotes/origin/main
+.claude/
