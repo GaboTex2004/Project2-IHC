@@ -47,40 +47,167 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // --- NUEVA FUNCIÓN PARA CALCULAR LAS FECHAS ---
-  Future<void> _aplicarFiltroFecha(String? tipo) async {
-    final hoy = DateTime.now();
+  static const _tiposCuidado = ["Vacuna", "Desparasitación", "Control", "Baño"];
 
-    if (tipo == '7_dias') {
-      _filtroFechaInicio = hoy;
-      _filtroFechaFin = hoy.add(Duration(days: 7));
-      _filtroFechaLabel = "Próximos 7 días";
-    } else if (tipo == 'este_mes') {
-      _filtroFechaInicio = DateTime(hoy.year, hoy.month, 1);
-      _filtroFechaFin = DateTime(hoy.year, hoy.month + 1, 0);
-      _filtroFechaLabel = "Este mes";
-    } else if (tipo == 'personalizado') {
-      final DateTimeRange? rango = await showDateRangePicker(
-        context: context,
-        firstDate: DateTime(2020),
-        lastDate: DateTime(2030),
-      );
-      if (rango != null) {
-        _filtroFechaInicio = rango.start;
-        _filtroFechaFin = rango.end;
-        _filtroFechaLabel =
-            "${rango.start.day}/${rango.start.month} - ${rango.end.day}/${rango.end.month}";
-      } else {
-        return; // Si cancela, no hacemos nada
-      }
-    } else {
-      _filtroFechaInicio = null;
-      _filtroFechaFin = null;
-      _filtroFechaLabel = null;
-    }
+  // Cuántos filtros de "Más filtros" están activos (para mostrarlo en el botón)
+  int _filtrosSecundariosActivos() {
+    int total = 0;
+    if (_filtroCuidado != null) total++;
+    if (_filtroFechaInicio != null) total++;
+    return total;
+  }
 
-    setState(() => _filtroFechaTipo = tipo);
+  void _cambiarEstado(bool? estado) {
+    setState(() => _filtroEstado = estado);
     _cargarMascotas();
+  }
+
+  // Hick: el tipo de cuidado y la fecha se usan poco, así que se agrupan
+  // en una hoja aparte en vez de competir con el estado en el panel.
+  void _abrirMasFiltros() {
+    String? cuidado = _filtroCuidado;
+    String? fechaTipo = _filtroFechaTipo;
+    DateTime? inicio = _filtroFechaInicio;
+    DateTime? fin = _filtroFechaFin;
+    String? fechaLabel = _filtroFechaLabel;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          Future<void> elegirFecha(String? tipo) async {
+            final hoy = DateTime.now();
+            if (tipo == '7_dias') {
+              inicio = hoy;
+              fin = hoy.add(Duration(days: 7));
+              fechaLabel = "Próximos 7 días";
+            } else if (tipo == 'este_mes') {
+              inicio = DateTime(hoy.year, hoy.month, 1);
+              fin = DateTime(hoy.year, hoy.month + 1, 0);
+              fechaLabel = "Este mes";
+            } else if (tipo == 'personalizado') {
+              final DateTimeRange? rango = await showDateRangePicker(
+                context: ctx,
+                firstDate: DateTime(2020),
+                lastDate: DateTime(2030),
+              );
+              if (rango == null) return; // Si cancela, no cambia nada
+              inicio = rango.start;
+              fin = rango.end;
+              fechaLabel =
+                  "${rango.start.day}/${rango.start.month} - ${rango.end.day}/${rango.end.month}";
+            } else {
+              inicio = null;
+              fin = null;
+              fechaLabel = null;
+            }
+            setSheet(() => fechaTipo = tipo);
+          }
+
+          Widget opcion(String texto, bool seleccionada, VoidCallback alTocar) {
+            return ChoiceChip(
+              label: Text(texto),
+              selected: seleccionada,
+              onSelected: (_) => alTocar(),
+            );
+          }
+
+          return SafeArea(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Más filtros",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 16),
+                  Text("Tipo de cuidado",
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      opcion("Todos", cuidado == null,
+                          () => setSheet(() => cuidado = null)),
+                      for (final tipo in _tiposCuidado)
+                        opcion(tipo, cuidado == tipo,
+                            () => setSheet(() => cuidado = tipo)),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  Text("Fecha", style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      opcion("Cualquier fecha", fechaTipo == null,
+                          () => elegirFecha(null)),
+                      opcion("Próximos 7 días", fechaTipo == '7_dias',
+                          () => elegirFecha('7_dias')),
+                      opcion("Este mes", fechaTipo == 'este_mes',
+                          () => elegirFecha('este_mes')),
+                      opcion(
+                        fechaTipo == 'personalizado'
+                            ? fechaLabel!
+                            : "Elegir rango...",
+                        fechaTipo == 'personalizado',
+                        () => elegirFecha('personalizado'),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            setSheet(() {
+                              cuidado = null;
+                              fechaTipo = null;
+                              inicio = null;
+                              fin = null;
+                              fechaLabel = null;
+                            });
+                          },
+                          child: Text("Limpiar"),
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black,
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            setState(() {
+                              _filtroCuidado = cuidado;
+                              _filtroFechaTipo = fechaTipo;
+                              _filtroFechaInicio = inicio;
+                              _filtroFechaFin = fin;
+                              _filtroFechaLabel = fechaLabel;
+                            });
+                            _cargarMascotas();
+                          },
+                          child: Text("Aplicar"),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   bool _hayFiltros() {
@@ -353,144 +480,77 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // --- 2. CONTROLES DE FILTRO (Desplegables) ---
+          // --- 2. FILTRO FRECUENTE: ESTADO (siempre visible) ---
           Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 8.0,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<bool?>(
-                    decoration: InputDecoration(
-                      labelText: "Estado",
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 10),
-                    ),
-                    value: _filtroEstado,
-                    isExpanded: true,
-                    hint: Text("Estado"),
-                    items: [
-                      DropdownMenuItem(value: null, child: Text("Todos")),
-                      DropdownMenuItem(value: false, child: Text("Pendientes")),
-                      DropdownMenuItem(value: true, child: Text("Realizados")),
-                    ],
-                    onChanged: (valor) {
-                      setState(() => _filtroEstado = valor);
-                      _cargarMascotas();
-                    },
-                  ),
-                ),
-                SizedBox(width: 8),
-                Expanded(
-                  child: DropdownButtonFormField<String?>(
-                    decoration: InputDecoration(
-                      labelText: "Cuidado",
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 10),
-                    ),
-                    value: _filtroCuidado,
-                    // Para que los textos largos se corten y no se salgan
-                    isExpanded: true,
-                    hint: Text("Cuidado"),
-                    items: [
-                      DropdownMenuItem(value: null, child: Text("Todos")),
-                      DropdownMenuItem(value: "Vacuna", child: Text("Vacuna")),
-                      DropdownMenuItem(
-                        value: "Desparasitación",
-                        child: Text("Desparasitación", overflow: TextOverflow.ellipsis),
-                      ),
-                      DropdownMenuItem(
-                        value: "Control",
-                        child: Text("Control"),
-                      ),
-                      DropdownMenuItem(value: "Baño", child: Text("Baño")),
-                    ],
-                    onChanged: (valor) {
-                      setState(() => _filtroCuidado = valor);
-                      _cargarMascotas();
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // NUEVO: FILTRO DE FECHAS DEBAJO DE LOS OTROS DOS
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: DropdownButtonFormField<String?>(
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 10),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<bool?>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(value: null, label: Text("Todos")),
+                  ButtonSegment(value: false, label: Text("Pendientes")),
+                  ButtonSegment(value: true, label: Text("Realizados")),
+                ],
+                selected: {_filtroEstado},
+                onSelectionChanged: (seleccion) =>
+                    _cambiarEstado(seleccion.first),
               ),
-              value: _filtroFechaTipo,
-              hint: Text("Filtrar por fecha..."),
-              items: [
-                DropdownMenuItem(value: null, child: Text("Cualquier fecha")),
-                DropdownMenuItem(
-                  value: "7_dias",
-                  child: Text("Próximos 7 días"),
-                ),
-                DropdownMenuItem(value: "este_mes", child: Text("Este mes")),
-                DropdownMenuItem(
-                  value: "personalizado",
-                  child: Text("Rango personalizado..."),
-                ),
-              ],
-              onChanged: (valor) => _aplicarFiltroFecha(valor),
             ),
           ),
-          SizedBox(height: 8),
 
-          // --- 3. FILTROS ACTIVOS (Chips con la "X" para quitarlos) ---
-          Wrap(
-            spacing: 8.0,
-            children: [
-              if (_filtroNombre.isNotEmpty)
-                Chip(
-                  label: Text('Nombre: $_filtroNombre'),
-                  deleteIcon: Icon(Icons.close, size: 18),
-                  onDeleted: () {
-                    _busquedaController.clear();
-                    setState(() => _filtroNombre = "");
-                    _cargarMascotas();
-                  },
+          // --- 3. MÁS FILTROS + FILTROS ACTIVOS (Chips con la "X") ---
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            alignment: Alignment.centerLeft,
+            child: Wrap(
+              spacing: 8.0,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                TextButton.icon(
+                  onPressed: _abrirMasFiltros,
+                  icon: Icon(Icons.tune),
+                  label: Text(
+                    _filtrosSecundariosActivos() > 0
+                        ? "Más filtros (${_filtrosSecundariosActivos()})"
+                        : "Más filtros",
+                  ),
                 ),
-              if (_filtroEstado != null)
-                Chip(
-                  label: Text(_filtroEstado! ? 'Realizados' : 'Pendientes'),
-                  deleteIcon: Icon(Icons.close, size: 18),
-                  onDeleted: () {
-                    setState(() => _filtroEstado = null);
-                    _cargarMascotas();
-                  },
-                ),
-              if (_filtroCuidado != null && _filtroCuidado!.isNotEmpty)
-                Chip(
-                  label: Text('Cuidado: $_filtroCuidado'),
-                  deleteIcon: Icon(Icons.close, size: 18),
-                  onDeleted: () {
-                    setState(() => _filtroCuidado = null);
-                    _cargarMascotas();
-                  },
-                ),
-              if (_filtroFechaInicio != null)
-                Chip(
-                  label: Text(_filtroFechaLabel ?? 'Fechas específicas'),
-                  deleteIcon: Icon(Icons.close, size: 18),
-                  onDeleted: () {
-                    setState(() {
-                      _filtroFechaInicio = null;
-                      _filtroFechaFin = null;
-                      _filtroFechaLabel = null;
-                      _filtroFechaTipo = null;
-                    });
-                    _cargarMascotas();
-                  },
-                ),
-            ],
+                if (_filtroNombre.isNotEmpty)
+                  Chip(
+                    label: Text('Nombre: $_filtroNombre'),
+                    deleteIcon: Icon(Icons.close, size: 18),
+                    onDeleted: () {
+                      _busquedaController.clear();
+                      setState(() => _filtroNombre = "");
+                      _cargarMascotas();
+                    },
+                  ),
+                if (_filtroCuidado != null && _filtroCuidado!.isNotEmpty)
+                  Chip(
+                    label: Text('Cuidado: $_filtroCuidado'),
+                    deleteIcon: Icon(Icons.close, size: 18),
+                    onDeleted: () {
+                      setState(() => _filtroCuidado = null);
+                      _cargarMascotas();
+                    },
+                  ),
+                if (_filtroFechaInicio != null)
+                  Chip(
+                    label: Text(_filtroFechaLabel ?? 'Fechas específicas'),
+                    deleteIcon: Icon(Icons.close, size: 18),
+                    onDeleted: () {
+                      setState(() {
+                        _filtroFechaInicio = null;
+                        _filtroFechaFin = null;
+                        _filtroFechaLabel = null;
+                        _filtroFechaTipo = null;
+                      });
+                      _cargarMascotas();
+                    },
+                  ),
+              ],
+            ),
           ),
 
           Divider(color: Colors.grey),

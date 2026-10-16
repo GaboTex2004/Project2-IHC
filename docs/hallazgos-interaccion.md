@@ -10,7 +10,7 @@
 | Hallazgo | Captura obligatoria | Justificación breve | Estado al terminar |
 | :--- | :--- | :--- | :--- |
 | **Fitts** | Acción difícil de alcanzar: la "X" para quitar un filtro activo. | Tamaño: un ícono de 18 px dentro del chip. | Documentado. |
-| **Hick** | Opciones que compiten: búsqueda + tres desplegables de filtro abiertos a la vez. | Cantidad y prioridad: 4 controles y 12 opciones con el mismo peso visual. | Documentado. **Priorizado para corregir hoy.** |
+| **Hick** | Opciones que compiten: búsqueda + tres desplegables de filtro abiertos a la vez. | Cantidad y prioridad: 4 controles y 12 opciones con el mismo peso visual. | Documentado y **corregido**. |
 | **Carga cognitiva** | Información que exige esfuerzo: la fecha del cuidado en formato `2026-10-18`. | Qué debe interpretar y comparar: traducir la fecha y calcular cuánto falta. | Documentado. |
 
 ---
@@ -50,4 +50,28 @@
 
 ## Corrección aplicada (Hick)
 
-_Pendiente: se completa en el commit `fix: aplicar mejora de interacción`._
+Se aplicó el patrón **"Prioridad"**: lo frecuente queda visible y el resto se agrupa en "Más filtros".
+
+| Antes | Después | "Más filtros" abierto | Filtros aplicados |
+| :---: | :---: | :---: | :---: |
+| ![Antes](evidencias/clase-16/hick-antes.png) | ![Después](evidencias/clase-16/hick-despues.png) | ![Más filtros](evidencias/clase-16/hick-despues-mas-filtros.png) | ![Aplicado](evidencias/clase-16/hick-despues-aplicado.png) |
+
+**Qué cambió:**
+
+1. **Estado siempre visible y sin abrir nada.** El desplegable de Estado se reemplazó por un control segmentado `Todos · Pendientes · Realizados`. Las tres opciones se ven de una vez y se eligen con un toque (`home_screen.dart:483-500`).
+2. **Tipo de cuidado y fecha agrupados en "Más filtros".** Los dos desplegables menos usados salen del panel y pasan a una hoja inferior con dos grupos con título ("Tipo de cuidado" y "Fecha"). Las opciones se muestran como chips, así que se pueden comparar sin abrir menús (`home_screen.dart:50-211`, `_abrirMasFiltros`).
+3. **Una sola decisión por vez en la hoja.** Los cambios se confirman con **Aplicar** (o se descartan con **Limpiar** o cerrando la hoja), así la lista no se recarga con cada toque.
+4. **Se ve qué está aplicado sin abrir la hoja.** El botón muestra cuántos filtros secundarios hay activos, por ejemplo "Más filtros (1)", y al lado quedan los chips de los filtros activos (`home_screen.dart:502-554`). Se quitó el chip de Estado porque ya se ve en el control segmentado y estaba duplicado.
+
+**Comparación:**
+
+| | Antes | Después |
+| :--- | :---: | :---: |
+| Controles de filtro en el panel | 4 (búsqueda + 3 desplegables) | 3 (búsqueda + estado + "Más filtros") |
+| Opciones que hay que abrir un menú para ver | 12 | 0 en el panel; 9 agrupadas en "Más filtros" |
+| Altura de los filtros antes de la primera tarjeta | ~180 px | ~140 px |
+| Toques para ver solo pendientes | 2 (abrir desplegable + elegir) | 1 |
+
+**Comprobación en la aplicación:** con el usuario de prueba se tocó "Pendientes", luego "Más filtros" → "Vacuna" → "Aplicar". La lista mostró solo a Firulais (Vacuna, pendiente), el botón cambió a "Más filtros (1)" y apareció el chip "Cuidado: Vacuna" (captura `hick-despues-aplicado.png`).
+
+**Fuera de alcance (quedan para después):** los hallazgos de Fitts (la "X" de 18 px de los chips) y de carga cognitiva (fecha en formato `2026-10-18`) siguen documentados arriba y no se corrigieron en esta entrega.
