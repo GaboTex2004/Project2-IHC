@@ -1,0 +1,23 @@
+# Hallazgo 1 · Ley de Fitts — Mascota al Día
+
+- **Funcionalidad evaluada:** Reprogramar · tipos de cuidado · fecha y estado.
+- **Pantalla y ubicación en código:** Panel de cuidados (`frontend/lib/features/mascotas/screens/home_screen.dart`, líneas 540–668).
+- **Estado al terminar (Commit 1):** Documentado.
+
+## Captura obligatoria (Acción difícil de alcanzar)
+
+![Fitts - Antes](evidencias/clase-16/fitts-antes.png)
+
+*(Enlace directo: [fitts-antes.png](evidencias/clase-16/fitts-antes.png))*
+
+## Problema observado (Tamaño, distancia o área activa)
+
+En cada tarjeta del listado de cuidados (`HomeScreen`), la acción para **Editar / Reprogramar** tiene un área activa pequeña en comparación con el resto de la tarjeta, se encuentra alejada del texto donde el usuario lee la fecha programada y está pegada al botón destructivo **Eliminar**.
+
+## Justificación breve
+
+> "El objetivo para reprogramar es pequeño, está distante del dato de la fecha y compite en espacio con el botón de eliminar, exigiendo mayor precisión al tocar. Aumentamos el área activa del botón de reprogramación y acercamos la acción directamente a los datos de fecha y estado del cuidado."
+
+## Priorización para corrección
+
+- **¿Se corregirá en el Commit 2?:** Sí (Hallazgo priorizado para implementar y comprobar en la aplicación).
