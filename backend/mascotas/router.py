@@ -76,7 +76,7 @@ def completar_cuidado(id: int, db: Session = Depends(get_db), usuario = Depends(
         mascota_nombre=mascota.nombre,
         cuidado=mascota.cuidado,
         tipo="realizado",
-        detalle=f"Cuidado del {mascota.fecha} marcado como realizado"
+        detalle=f"Programado para el {mascota.fecha}"
     ))
     db.commit()
     return {"mensaje": "Cuidado completado exitosamente"}
