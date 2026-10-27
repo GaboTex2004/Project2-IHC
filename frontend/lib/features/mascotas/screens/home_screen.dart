@@ -11,6 +11,7 @@ import '../../auth/screens/login_screen.dart';
 // IMPORTAMOS LA NUEVA PANTALLA
 import 'agregar_mascota_screen.dart';
 import 'editar_mascota_screen.dart';
+import '../../historial/screens/historial_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -440,6 +441,18 @@ class _HomeScreenState extends State<HomeScreen> {
         foregroundColor: Colors.white,
         automaticallyImplyLeading: false,
         actions: [
+          // Fitts: botón con texto e ícono, más grande que un ícono solo
+          TextButton.icon(
+            style: TextButton.styleFrom(foregroundColor: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => HistorialScreen()),
+              );
+            },
+            icon: Icon(Icons.history),
+            label: Text("Historial"),
+          ),
           IconButton(
             icon: Icon(Icons.logout),
             tooltip: "Cerrar sesión",

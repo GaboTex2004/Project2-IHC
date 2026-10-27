@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from core.database import get_db
 from . import models, schemas
+from historial.models import Evento
 from typing import Optional
 from datetime import date
 
@@ -68,6 +69,15 @@ def completar_cuidado(id: int, db: Session = Depends(get_db), usuario = Depends(
         raise HTTPException(status_code=400, detail="El cuidado ya estaba completado")
 
     mascota.estado = True
+    # Guardamos el evento para el historial
+    db.add(Evento(
+        usuario_id=usuario.id,
+        mascota_id=mascota.id,
+        mascota_nombre=mascota.nombre,
+        cuidado=mascota.cuidado,
+        tipo="realizado",
+        detalle=f"Programado para el {mascota.fecha}"
+    ))
     db.commit()
     return {"mensaje": "Cuidado completado exitosamente"}
 
@@ -85,6 +95,17 @@ def editar_mascota(id: int, mascota_actualizada: schemas.MascotaCreate, db: Sess
     # Si cambia la fecha, tiene que ser futura (misma regla que reprogramar)
     if mascota_actualizada.fecha != mascota.fecha and mascota_actualizada.fecha <= date.today():
         raise HTTPException(status_code=400, detail="La nueva fecha debe ser futura")
+
+    # Si cambió la fecha es una reprogramación y se guarda en el historial
+    if mascota_actualizada.fecha != mascota.fecha:
+        db.add(Evento(
+            usuario_id=usuario.id,
+            mascota_id=mascota.id,
+            mascota_nombre=mascota_actualizada.nombre,
+            cuidado=mascota_actualizada.cuidado,
+            tipo="reprogramado",
+            detalle=f"Del {mascota.fecha} al {mascota_actualizada.fecha}"
+        ))
 
     # Actualizamos los datos
     mascota.nombre = mascota_actualizada.nombre
